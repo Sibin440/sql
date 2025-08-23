@@ -2,17 +2,20 @@ import os
 import mysql.connector
 from dotenv import load_dotenv
 import google.generativeai as genai
+from flask import Flask, request, render_template
 
 # Load environment variables
 load_dotenv()
 
 # Configure Gemini
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-# ✅ Create model instance
 model = genai.GenerativeModel("gemini-1.5-flash")
 
+# Initialize Flask app
+app = Flask(__name__)
 
+
+# ---------- DB Functions ----------
 def get_schema():
     """Fetch database schema (tables + columns) from MySQL"""
     try:
@@ -41,7 +44,7 @@ def get_schema():
 
 
 def run_query(query):
-    """Run SQL query on MySQL DB and print results"""
+    """Run SQL query on MySQL DB and return results"""
     try:
         conn = mysql.connector.connect(
             host=os.getenv("DB_HOST", "localhost"),
@@ -52,24 +55,17 @@ def run_query(query):
         cursor = conn.cursor()
         cursor.execute(query)
         results = cursor.fetchall()
-
-        # Print column headers
         col_names = [desc[0] for desc in cursor.description]
-        print("\t".join(col_names))
-        print("-" * 50)
-
-        # Print each row
-        for row in results:
-            print("\t".join(str(x) for x in row))
-
         conn.close()
+        return {"columns": col_names, "rows": results}
+
     except mysql.connector.Error as err:
-        print(f"❌ Database Error: {err}")
+        return {"error": str(err)}
 
 
 def prompt_to_sql(user_prompt):
     """Convert natural language to SQL using Gemini"""
-    schema = get_schema()  # dynamically fetch schema
+    schema = get_schema()
     response = model.generate_content(f"""
     Convert this request into a valid MySQL query.
     Request: {user_prompt}
@@ -80,7 +76,7 @@ def prompt_to_sql(user_prompt):
     
     sql = response.text.strip()
 
-    # 🧹 Clean SQL
+    # 🧹 Clean SQL if Gemini wraps it in markdown
     if sql.startswith("```"):
         sql = sql.split("```")[1]
     sql = sql.replace("sql", "").replace("```", "").strip()
@@ -88,13 +84,17 @@ def prompt_to_sql(user_prompt):
     return sql
 
 
-if __name__ == "__main__":
-    print("🤖 Smart Retrieval System (Prompt-based)")
-    while True:
-        user_prompt = input("\nAsk your query (or type 'exit' to quit): ")
-        if user_prompt.lower() == "exit":
-            print("👋 Goodbye!")
-            break
+# ---------- Flask Routes ----------
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        user_prompt = request.form["query"]
         sql_query = prompt_to_sql(user_prompt)
-        print(f"\n📝 Generated SQL:\n{sql_query}\n")
-        run_query(sql_query)
+        results = run_query(sql_query)
+        return render_template("index.html", query=user_prompt, sql=sql_query, results=results)
+    return render_template("index.html")
+
+
+# ---------- Run App ----------
+if __name__ == "__main__":
+    app.run(debug=True)
