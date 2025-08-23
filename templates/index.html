@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Retrieval System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { color: #2c3e50; }
+        form { margin-bottom: 20px; }
+        table, th, td { border: 1px solid black; border-collapse: collapse; padding: 8px; }
+    </style>
+</head>
+<body>
+    <h1>🤖 Smart Retrieval System</h1>
+
+    <form method="POST">
+        <input type="text" name="query" placeholder="Ask your question..." size="50" required>
+        <button type="submit">Submit</button>
+    </form>
+
+    {% if sql %}
+        <h3>📝 Generated SQL:</h3>
+        <pre>{{ sql }}</pre>
+    {% endif %}
+
+    {% if results %}
+        {% if results.error %}
+            <p style="color:red;">❌ {{ results.error }}</p>
+        {% else %}
+            <h3>📊 Results:</h3>
+            <table>
+                <tr>
+                    {% for col in results.columns %}
+                        <th>{{ col }}</th>
+                    {% endfor %}
+                </tr>
+                {% for row in results.rows %}
+                    <tr>
+                        {% for val in row %}
+                            <td>{{ val }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+    {% endif %}
+</body>
+</html>
