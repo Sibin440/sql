@@ -24,6 +24,7 @@ def get_schema():
             user=os.getenv("DB_USER", "root"),
             password=os.getenv("DB_PASSWORD", "Sibin"),
             database=os.getenv("DB_NAME", "smart_retrieval"),
+            port=3306
         )
         cursor = conn.cursor()
 
@@ -51,6 +52,7 @@ def run_query(query):
             user=os.getenv("DB_USER", "root"),
             password=os.getenv("DB_PASSWORD", "Sibin"),
             database=os.getenv("DB_NAME", "smart_retrieval"),
+             port=3306
         )
         cursor = conn.cursor()
         cursor.execute(query)
