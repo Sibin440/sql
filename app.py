@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 from flask import Flask, request, render_template
 
-# Load environment variables from .env (for local dev)
+# Load environment variables
 load_dotenv()
 
 # Configure Gemini
@@ -14,23 +14,16 @@ model = genai.GenerativeModel("gemini-1.5-flash")
 # Initialize Flask app
 app = Flask(__name__)
 
-
 # ---------- DB Functions ----------
-def get_connection():
-    """Create and return a MySQL connection"""
-    return mysql.connector.connect(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME"),
-        port=int(os.getenv("DB_PORT", 3306))
-    )
-
-
 def get_schema():
     """Fetch database schema (tables + columns) from MySQL"""
     try:
-        conn = get_connection()
+        conn = mysql.connector.connect(
+            host=os.getenv("DB_HOST", "localhost"),
+            user=os.getenv("DB_USER", "root"),
+            password=os.getenv("DB_PASSWORD", "Sibin"),
+            database=os.getenv("DB_NAME", "smart_retrieval"),
+        )
         cursor = conn.cursor()
 
         schema = []
@@ -52,7 +45,12 @@ def get_schema():
 def run_query(query):
     """Run SQL query on MySQL DB and return results"""
     try:
-        conn = get_connection()
+        conn = mysql.connector.connect(
+            host=os.getenv("DB_HOST", "localhost"),
+            user=os.getenv("DB_USER", "root"),
+            password=os.getenv("DB_PASSWORD", "Sibin"),
+            database=os.getenv("DB_NAME", "smart_retrieval"),
+        )
         cursor = conn.cursor()
         cursor.execute(query)
         results = cursor.fetchall()
@@ -62,7 +60,6 @@ def run_query(query):
 
     except mysql.connector.Error as err:
         return {"error": str(err)}
-
 
 def prompt_to_sql(user_prompt):
     """Convert natural language to SQL using Gemini"""
@@ -84,7 +81,6 @@ def prompt_to_sql(user_prompt):
 
     return sql
 
-
 # ---------- Flask Routes ----------
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -94,7 +90,6 @@ def index():
         results = run_query(sql_query)
         return render_template("index.html", query=user_prompt, sql=sql_query, results=results)
     return render_template("index.html")
-
 
 # ---------- Run App ----------
 if __name__ == "__main__":
