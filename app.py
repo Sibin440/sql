@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 from flask import Flask, request, render_template
 
-# Load environment variables
+# Load environment variables from .env (for local dev)
 load_dotenv()
 
 # Configure Gemini
@@ -16,16 +16,21 @@ app = Flask(__name__)
 
 
 # ---------- DB Functions ----------
+def get_connection():
+    """Create and return a MySQL connection"""
+    return mysql.connector.connect(
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
+        port=int(os.getenv("DB_PORT", 3306))
+    )
+
+
 def get_schema():
     """Fetch database schema (tables + columns) from MySQL"""
     try:
-        conn = mysql.connector.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            user=os.getenv("DB_USER", "root"),
-            password=os.getenv("DB_PASSWORD", "Sibin"),
-            database=os.getenv("DB_NAME", "smart_retrieval"),
-            port=int(os.getenv("DB_PORT", 3306))
-        )
+        conn = get_connection()
         cursor = conn.cursor()
 
         schema = []
@@ -47,13 +52,7 @@ def get_schema():
 def run_query(query):
     """Run SQL query on MySQL DB and return results"""
     try:
-        conn = mysql.connector.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            user=os.getenv("DB_USER", "root"),
-            password=os.getenv("DB_PASSWORD", "Sibin"),
-            database=os.getenv("DB_NAME", "smart_retrieval"),
-            port=int(os.getenv("DB_PORT", 3306))
-        )
+        conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(query)
         results = cursor.fetchall()
